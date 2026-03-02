@@ -42,7 +42,7 @@ Living handoff for this repo. Update this file as modernization work progresses.
   - `middleware/requireAuth.js`
     - Expects `Authorization: Bearer <token>`
   - `models/user.js`
-    - Fields: `username`, `password`, `access_token`, `item_id[]`, `plaidCursor`
+    - Fields: `username`, `password`, `plaidItems[]`, plus legacy migration fields `access_token`, `item_id[]`, `plaidCursor`
   - `models/transaction.js`
     - Fields: `name`, `type`, `amount`, `userID`, `plaidTransactionID`, `date`, `category[]`
 
@@ -88,10 +88,8 @@ Living handoff for this repo. Update this file as modernization work progresses.
 
 ### Backend correctness/security
 
-- Plaid multi-item model inconsistency:
-  - `item_id` stored as array, but `access_token` stored as single value
-  - `retrievePlaidTransactions` loops items but `syncTransactions` ignores `itemId` arg and reuses one access token
-- Per-item Plaid token/cursor redesign is still pending
+- Legacy Plaid fields (`access_token`, `item_id`, `plaidCursor`) are retained for backward compatibility.
+- Active Plaid sync now uses `plaidItems[]` (`itemId`, `accessToken`, `cursor`) with per-item cursors.
 
 ### Frontend architecture/UX
 
@@ -131,7 +129,7 @@ Reason: this minimizes rewrite risk while modernizing incrementally.
 
 - [x] Fix transaction ownership enforcement in all read/update/delete endpoints
 - [x] Fix Plaid sync retry bug (`initialCursor` reference)
-- [ ] Redesign Plaid token storage (per-item token model)
+- [x] Redesign Plaid token storage (per-item token model)
 - [x] Normalize transaction date type (prefer `Date`)
 - [x] Add request validation and centralized error handling
 - [x] Add security middleware (`helmet`, tighter `cors`, basic rate limiting)

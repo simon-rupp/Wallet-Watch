@@ -3,11 +3,14 @@ const assert = require('node:assert/strict');
 const mongoose = require('mongoose');
 const request = require('supertest');
 const { MongoMemoryServer } = require('mongodb-memory-server');
+const User = require('../models/user');
+const Transaction = require('../models/transaction');
 
 process.env.NODE_ENV = 'test';
 process.env.SECRET = process.env.SECRET || 'test-secret';
 
 const app = require('../app');
+const { __private: plaidPrivate } = require('../controllers/plaidController');
 
 let mongoServer;
 
@@ -194,4 +197,119 @@ test('transaction validation rejects bad payloads', async () => {
     .send({ amount: -10 });
   assert.equal(invalidUpdateRes.status, 400);
   assert.ok(invalidUpdateRes.body.invalidFields.includes('amount'));
+});
+
+test('plaid helpers normalize legacy and upsert item records', async () => {
+  const legacyUser = {
+    access_token: 'legacy-token',
+    item_id: ['item-a', 'item-b'],
+    plaidCursor: 'legacy-cursor',
+    plaidItems: [],
+  };
+
+  const normalized = plaidPrivate.normalizeLegacyPlaidItems(legacyUser);
+  assert.deepEqual(normalized, [
+    { itemId: 'item-a', accessToken: 'legacy-token', cursor: 'legacy-cursor' },
+    { itemId: 'item-b', accessToken: 'legacy-token', cursor: 'legacy-cursor' },
+  ]);
+
+  const upserted = plaidPrivate.upsertPlaidItem(
+    [{ itemId: 'item-a', accessToken: 'old-token', cursor: 'old-cursor' }],
+    { itemId: 'item-a', accessToken: 'new-token', cursor: null }
+  );
+
+  assert.deepEqual(upserted, [
+    { itemId: 'item-a', accessToken: 'new-token', cursor: 'old-cursor' },
+  ]);
+});
+
+test('plaid sync updates only matching user/item and stores per-item cursor', async () => {
+  const userOne = await User.create({
+    username: 'plaid-user-one',
+    password: 'hashed-password',
+    plaidItems: [{ itemId: 'item-1', accessToken: 'token-1', cursor: null }],
+  });
+
+  const userTwo = await User.create({
+    username: 'plaid-user-two',
+    password: 'hashed-password',
+    plaidItems: [{ itemId: 'item-2', accessToken: 'token-2', cursor: null }],
+  });
+
+  await Transaction.create({
+    name: 'Delete Me User One',
+    type: 'expense',
+    amount: 20,
+    userID: userOne._id.toString(),
+    plaidTransactionID: 'delete-me',
+    date: new Date(),
+    category: ['Fees'],
+  });
+
+  await Transaction.create({
+    name: 'Delete Me User Two',
+    type: 'expense',
+    amount: 30,
+    userID: userTwo._id.toString(),
+    plaidTransactionID: 'delete-me',
+    date: new Date(),
+    category: ['Fees'],
+  });
+
+  plaidPrivate.setPlaidClient({
+    transactionsSync: async ({ access_token: accessToken }) => {
+      if (accessToken !== 'token-1') {
+        throw new Error('Unexpected access token in test');
+      }
+      return {
+        data: {
+          added: [
+            {
+              transaction_id: 'new-tx',
+              name: 'Coffee Shop',
+              amount: 8.5,
+              date: '2025-01-11',
+              category: ['Food and Drink'],
+            },
+          ],
+          modified: [],
+          removed: [{ transaction_id: 'delete-me' }],
+          next_cursor: 'cursor-item-1',
+          has_more: false,
+        },
+      };
+    },
+  });
+
+  const syncResult = await plaidPrivate.syncTransactions(
+    { itemId: 'item-1', accessToken: 'token-1', cursor: null },
+    userOne._id.toString()
+  );
+
+  assert.equal(syncResult.itemId, 'item-1');
+  assert.equal(syncResult.added, 1);
+  assert.equal(syncResult.removed, 1);
+
+  const deletedForUserOne = await Transaction.findOne({
+    userID: userOne._id.toString(),
+    plaidTransactionID: 'delete-me',
+  });
+  assert.equal(deletedForUserOne, null);
+
+  const stillExistsForUserTwo = await Transaction.findOne({
+    userID: userTwo._id.toString(),
+    plaidTransactionID: 'delete-me',
+  });
+  assert.ok(stillExistsForUserTwo);
+
+  const createdForUserOne = await Transaction.findOne({
+    userID: userOne._id.toString(),
+    plaidTransactionID: 'new-tx',
+  });
+  assert.ok(createdForUserOne);
+  assert.equal(createdForUserOne.name, 'Coffee Shop');
+
+  const refreshedUserOne = await User.findById(userOne._id);
+  const syncedItem = refreshedUserOne.plaidItems.find((item) => item.itemId === 'item-1');
+  assert.equal(syncedItem.cursor, 'cursor-item-1');
 });
