@@ -2,6 +2,8 @@
 
 Wallet Watch is a legacy MERN + Plaid app for tracking spending, income, and cash flow.
 
+Live site: https://wallet-watch-seven.vercel.app/
+
 ## Repository Layout
 
 - `backend/`: Express + MongoDB API (auth, transactions, Plaid sync)
