@@ -17,7 +17,7 @@ Living handoff for this repo. Update this file as modernization work progresses.
 - `.gitignore`: now ignores dependency folders/env/build artifacts across root + backend + frontend
 - `.netlify/state.json`: Netlify site metadata
 - `backend/`: Express/Mongoose API
-- `frontend/`: CRA React app
+- `frontend/`: Vite React app
 
 ### Backend (`backend/`)
 
@@ -61,22 +61,22 @@ Living handoff for this repo. Update this file as modernization work progresses.
 
 ### Frontend (`frontend/`)
 
-- Framework/tooling: Create React App (`react-scripts@5`)
-- Entrypoint: `src/index.js` with `AuthContextProvider` + `TransactionContextProvider`
-- Routing: `src/App.js` using React Router v6
+- Framework/tooling: Vite + React
+- Entrypoint: `src/main.jsx` with `AuthContextProvider` + `TransactionContextProvider`
+- Routing: `src/App.jsx` using React Router v6
   - Protected routes for app pages, login/register gating by auth context
 - State:
-  - `context/authContext.js`: auth reducer with `LOGIN`/`LOGOUT`
-  - `context/transactionContext.js`: transaction reducer
+  - `context/authContext.jsx`: auth reducer with `LOGIN`/`LOGOUT`
+  - `context/transactionContext.jsx`: transaction reducer
 - Pages:
   - `Home`: transactions list + sort + pagination + sync button
   - `LinkAccounts`: Plaid Link flow
   - `Login`, `Register`, `Info`, plus `Income`/`Spending` (currently not linked in navbar)
 - API calls:
-  - Relative paths (`/api/...`)
-  - Dev proxy in `frontend/package.json` -> `http://localhost:4000`
+  - Centralized helper in `src/lib/api.js`
+  - Uses `VITE_API_BASE_URL` for explicit backend origin
 - Current hosting config:
-  - `frontend/netlify.toml` rewrites `/api/*` to old Heroku API URL
+  - `frontend/netlify.toml` builds Vite output (`dist`) + SPA redirect
 
 ## 3) Current Risks / Technical Debt (Observed)
 
@@ -93,15 +93,14 @@ Living handoff for this repo. Update this file as modernization work progresses.
 
 ### Frontend architecture/UX
 
-- CRA stack is legacy and harder to optimize vs modern frameworks (Vite/Next)
-- Several full page reload patterns (`window.location.reload`) instead of local state invalidation
+- Component-level tests are still sparse on key auth/transaction UI flows
 - `useLinkAccount.js` exists but is empty/unused
 - Formatting/validation patterns are inconsistent across components
 
 ### Deployment model drift
 
-- App still assumes Netlify frontend + Heroku backend rewrite flow
-- Heroku free plan constraints and old routing assumptions are incompatible with desired modern free deploy flow
+- Frontend no longer hardcodes Heroku rewrite rules, but production infra is not yet redeployed
+- Render/Vercel production environment variables and DNS/domain wiring are still pending
 
 ## 4) Suggested Target Architecture
 
@@ -111,7 +110,7 @@ Living handoff for this repo. Update this file as modernization work progresses.
 - Auth/API:
   - Keep JWT auth initially
   - Add strict CORS allowlist with frontend domain
-  - Use explicit `API_BASE_URL` env variable in frontend (avoid host-coupled rewrites)
+  - Use explicit `VITE_API_BASE_URL` env variable in frontend (avoid host-coupled rewrites)
 
 Reason: this minimizes rewrite risk while modernizing incrementally.
 
@@ -136,10 +135,10 @@ Reason: this minimizes rewrite risk while modernizing incrementally.
 
 ### Phase 2: Frontend modernization
 
-- [ ] Migrate CRA app to Vite
-- [ ] Replace host rewrite assumptions with env-driven `API_BASE_URL`
-- [ ] Remove full page reload flows; update context state from API responses
-- [ ] Add loading/error states around Plaid sync and data fetches
+- [x] Migrate CRA app to Vite
+- [x] Replace host rewrite assumptions with env-driven `API_BASE_URL`
+- [x] Remove full page reload flows; update context state from API responses
+- [x] Add loading/error states around Plaid sync and data fetches
 - [ ] Add component-level tests for auth and transaction list behaviors
 
 ### Phase 3: Deployment refresh
@@ -173,7 +172,7 @@ Frontend:
 ```bash
 cd frontend
 npm ci
-npm start
+npm run dev
 ```
 
 ## 7) Codex Working Notes

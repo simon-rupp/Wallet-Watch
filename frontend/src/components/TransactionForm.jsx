@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTransactionsContext } from "../hooks/useTransactionsContext"
 import { useAuthContext } from '../hooks/useAuthContext'
+import { apiFetch } from "../lib/api"
 
 const TransactionFrom = () => {
     const {dispatch} = useTransactionsContext()
@@ -22,22 +23,25 @@ const TransactionFrom = () => {
             return
         }
         const transaction = { name, type, amount, category }
-        const res = await fetch('/api/transactions', {
-            method: 'POST',
-            body: JSON.stringify(transaction),
-            headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${user.token}`  
-            }
-        })
 
-        const json = await res.json()
+        try {
+            const res = await apiFetch('/api/transactions', {
+                method: 'POST',
+                body: JSON.stringify(transaction),
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user.token}`  
+                }
+            })
 
-        if (!res.ok) {
-            setError(json.error)
-            //setEmptyFeilds(json.emptyFeilds)
-        } 
-        else {
+            const json = await res.json()
+
+            if (!res.ok) {
+                setError(json.error || "Failed to add transaction")
+                //setEmptyFeilds(json.emptyFeilds)
+                return
+            } 
+
             setError(null)
             setName('')
             setType('expense')
@@ -46,6 +50,8 @@ const TransactionFrom = () => {
             //setEmptyFeilds(null)
             console.log("new transaction added", json)
             dispatch({type: "CREATE_TRANSACTION", payload: json})
+        } catch (err) {
+            setError(err.message || "Failed to add transaction")
         }
     }    
 
