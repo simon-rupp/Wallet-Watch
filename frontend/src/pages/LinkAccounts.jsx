@@ -32,8 +32,8 @@ const LinkAccounts = () => {
         }
 
         setLinkToken(data.link_token);
-      } catch (err) {
-        setLinkError(err.message || "Failed to create Plaid link token.");
+      } catch (error) {
+        setLinkError(error.message || "Failed to create Plaid link token.");
       } finally {
         setIsCreatingToken(false);
       }
@@ -42,7 +42,7 @@ const LinkAccounts = () => {
     createLinkToken();
   }, [user]);
 
-  const onSuccess = async (public_token) => {
+  const onSuccess = async (publicToken) => {
     if (!user) {
       return;
     }
@@ -57,7 +57,7 @@ const LinkAccounts = () => {
           Authorization: `Bearer ${user.token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ public_token }),
+        body: JSON.stringify({ public_token: publicToken }),
       });
       const data = await response.json();
 
@@ -67,8 +67,8 @@ const LinkAccounts = () => {
       }
 
       setSyncMessage("Account linked successfully.");
-    } catch (err) {
-      setLinkError(err.message || "Failed to link account.");
+    } catch (error) {
+      setLinkError(error.message || "Failed to link account.");
     }
   };
 
@@ -77,7 +77,7 @@ const LinkAccounts = () => {
     onSuccess,
   });
 
-  const onClick = (event) => {
+  const handleLinkClick = (event) => {
     event.preventDefault();
     if (ready) {
       open();
@@ -85,43 +85,47 @@ const LinkAccounts = () => {
   };
 
   return (
-    <div>
-      <p className="note">
-        **NOTE** <br></br> <br></br> Although the code is working, Wallet Watch
-        is not currently approved for Plaid&apos;s Production Environment.
-        Unfortunately this means that many of the major banks will not allow
-        Wallet Watch users to connect due to security risks. As a result,{" "}
-        <span className="underline">
-          Plaid&apos;s Sandbox Environment is currently being used
-        </span>{" "}
-        so that users can still test out the functionality of this feature with
-        fake data.
-        <br></br> <br></br>
-        username: user_good <br></br> password: pass_good <br></br> verification
-        code: 1234 (if needed)
-        <br></br> <br></br>
-        We apologize for the inconvenience.
-      </p>
-      {isCreatingToken && (
-        <p style={{ color: "#414141", fontSize: "0.9em" }}>
-          Preparing secure bank-link session...
+    <div className="content-shell">
+      <section className="content-card">
+        <p className="eyebrow">Bank Linking</p>
+        <h1>Connect your bank accounts securely with Plaid.</h1>
+        <p>
+          Start a secure Plaid Link flow to bring transactions into Wallet Watch.
+          You can sync manually any time from your dashboard.
         </p>
-      )}
-      {linkError && (
-        <p style={{ color: "#cb0808", fontSize: "0.9em" }}>{linkError}</p>
-      )}
-      {syncMessage && (
-        <p style={{ color: "#1bad7a", fontSize: "0.9em" }}>{syncMessage}</p>
-      )}
-      <div className="linkaccountbuttondiv">
+      </section>
+
+      <section className="content-card sandbox-card">
+        <h2>Sandbox Credentials</h2>
+        <p>
+          Wallet Watch is currently running on Plaid&apos;s sandbox environment
+          while production approval is in progress.
+        </p>
+        <ul>
+          <li>Username: user_good</li>
+          <li>Password: pass_good</li>
+          <li>Verification code: 1234 (if prompted)</li>
+        </ul>
+
+        {isCreatingToken && (
+          <p className="status-message status-neutral">
+            Preparing secure bank-link session...
+          </p>
+        )}
+        {linkError && <p className="status-message status-error">{linkError}</p>}
+        {syncMessage && (
+          <p className="status-message status-success">{syncMessage}</p>
+        )}
+
         <button
-          className="linkaccountbutton"
-          onClick={onClick}
+          className="primary-button linkaccountbutton"
+          onClick={handleLinkClick}
           disabled={!linkToken || !ready || isCreatingToken}
+          type="button"
         >
-          Click here to link accounts
+          {isCreatingToken ? "Preparing..." : "Launch Plaid Link"}
         </button>
-      </div>
+      </section>
     </div>
   );
 };

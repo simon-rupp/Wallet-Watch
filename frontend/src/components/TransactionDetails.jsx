@@ -1,61 +1,71 @@
-import { useTransactionsContext } from "../hooks/useTransactionsContext"
-import { useAuthContext } from '../hooks/useAuthContext'
-import { apiFetch } from "../lib/api"
+import { useTransactionsContext } from "../hooks/useTransactionsContext";
+import { useAuthContext } from "../hooks/useAuthContext";
+import { apiFetch } from "../lib/api";
+import { formatCurrency, toNumber } from "../lib/finance";
 
 const TransactionDetails = ({ transaction }) => {
-    const formattedDate = new Date(transaction.date || transaction.createdAt).toLocaleDateString();
-    const {dispatch} = useTransactionsContext()
-    const {user} = useAuthContext()
-    
-    const colorChanger = () => {
-        let condition = false
-        if (transaction.type === "expense") {
-            condition = true
-        }
-        return condition
+  const { dispatch } = useTransactionsContext();
+  const { user } = useAuthContext();
+
+  const amount = toNumber(transaction.amount);
+  const isExpense = transaction.type === "expense";
+  const transactionDate = new Date(
+    transaction.date || transaction.createdAt || Date.now()
+  ).toLocaleDateString();
+  const category = Array.isArray(transaction.category)
+    ? transaction.category[0]
+    : transaction.category;
+  const categoryLabel = category || "Uncategorized";
+
+  const handleDelete = async () => {
+    if (!user) {
+      return;
     }
 
-    const handleClick = async () => {
-        if (!user){
-            return
-        }
-        try {
-            const res = await apiFetch(`/api/transactions/${transaction._id}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${user.token}`
-                }
-            })
-            const data = await res.json()
-            if (res.ok) {
-                dispatch({type: "DELETE_TRANSACTION", payload: data})
-            }
-        } catch (err) {
-            console.error("Failed to delete transaction", err)
-        }
-        
-    }  
+    try {
+      const response = await apiFetch(`/api/transactions/${transaction._id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${user.token}`,
+        },
+      });
+      const data = await response.json();
 
-    const handleAmount = (amount) => {
-        return parseFloat(amount).toFixed(2)
+      if (response.ok) {
+        dispatch({ type: "DELETE_TRANSACTION", payload: data });
+      }
+    } catch (error) {
+      console.error("Failed to delete transaction", error);
     }
-    
-    return (
-        <div className="transaction-details">
-            <h3>{transaction.name}</h3>
-            <p className="Amount">
-                Amount: <span style={{ color: colorChanger() ? "#cb0808" : "#1bad7a" }}>$</span>
-                <span style={{ color: colorChanger() ? "#cb0808" : "#1bad7a" }}>
-                    {handleAmount(transaction.amount)}
-                </span>
-            </p>
-            <br/>
-            <span className="category">{transaction.category[0]}</span>
-            <p className="date">{formattedDate}</p>
-            
-            <span className="deleteButton" onClick={handleClick}>Delete</span>
+  };
+
+  return (
+    <article className="transaction-details">
+      <div className="transaction-main">
+        <div className="transaction-copy">
+          <span
+            className={`transaction-type-chip ${
+              isExpense ? "chip-expense" : "chip-income"
+            }`}
+          >
+            {isExpense ? "Expense" : "Income"}
+          </span>
+          <h3>{transaction.name}</h3>
+          <p className="transaction-meta">
+            <span>{categoryLabel}</span>
+            <span>{transactionDate}</span>
+          </p>
         </div>
-    )
-}
+        <p className={`transaction-amount ${isExpense ? "expense" : "income"}`}>
+          {isExpense ? "-" : "+"}
+          {formatCurrency(Math.abs(amount))}
+        </p>
+      </div>
+      <button className="deleteButton" onClick={handleDelete} type="button">
+        Delete
+      </button>
+    </article>
+  );
+};
 
-export default TransactionDetails
+export default TransactionDetails;

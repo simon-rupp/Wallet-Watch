@@ -1,113 +1,141 @@
-import { useState } from 'react'
-import { useTransactionsContext } from "../hooks/useTransactionsContext"
-import { useAuthContext } from '../hooks/useAuthContext'
-import { apiFetch } from "../lib/api"
+import { useState } from "react";
+import { useTransactionsContext } from "../hooks/useTransactionsContext";
+import { useAuthContext } from "../hooks/useAuthContext";
+import { apiFetch } from "../lib/api";
 
-const TransactionFrom = () => {
-    const {dispatch} = useTransactionsContext()
-    const [name, setName] = useState('')
-    const [type, setType] = useState('expense')
-    const [amount, setAmount] = useState('')
-    const [category, setCategory] = useState('Rent')
-    const [error, setError] = useState(null)
-    //const [emptyFeilds, setEmptyFeilds] = useState(null)
+const categories = [
+  "Rent",
+  "Taxes",
+  "Utilities",
+  "Mortgage",
+  "Health",
+  "Savings",
+  "Bills",
+  "Travel",
+  "Fees",
+  "Food and Drink",
+  "Shopping",
+  "Entertainment",
+  "Personal Care",
+  "Transfer",
+  "Income",
+  "Uncategorized",
+];
 
+const TransactionForm = () => {
+  const { dispatch } = useTransactionsContext();
+  const { user } = useAuthContext();
 
-    const {user} = useAuthContext()
-    
-    const handleSubmit = async (e) => {
-        e.preventDefault()
-        
-        if (!user) {
-            setError("Please login to add a transaction")
-            return
-        }
-        const transaction = { name, type, amount, category }
+  const [name, setName] = useState("");
+  const [type, setType] = useState("expense");
+  const [amount, setAmount] = useState("");
+  const [category, setCategory] = useState("Rent");
+  const [error, setError] = useState(null);
 
-        try {
-            const res = await apiFetch('/api/transactions', {
-                method: 'POST',
-                body: JSON.stringify(transaction),
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${user.token}`  
-                }
-            })
+  const handleSubmit = async (event) => {
+    event.preventDefault();
 
-            const json = await res.json()
+    if (!user) {
+      setError("Please login to add a transaction.");
+      return;
+    }
 
-            if (!res.ok) {
-                setError(json.error || "Failed to add transaction")
-                //setEmptyFeilds(json.emptyFeilds)
-                return
-            } 
+    const transaction = { name, type, amount, category };
 
-            setError(null)
-            setName('')
-            setType('expense')
-            setAmount('')
-            setCategory('Rent')
-            //setEmptyFeilds(null)
-            console.log("new transaction added", json)
-            dispatch({type: "CREATE_TRANSACTION", payload: json})
-        } catch (err) {
-            setError(err.message || "Failed to add transaction")
-        }
-    }    
+    try {
+      const response = await apiFetch("/api/transactions", {
+        method: "POST",
+        body: JSON.stringify(transaction),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${user.token}`,
+        },
+      });
+      const json = await response.json();
 
-    return (
-        <form className="create" onSubmit={handleSubmit}>
-            <h2>Add New Transaction</h2>
-            <label>Transaction Name:</label>
-            <input
-                type="text"
-                onChange={(e) => setName(e.target.value)}
-                value={name}
-            />
+      if (!response.ok) {
+        setError(json.error || "Failed to add transaction.");
+        return;
+      }
 
-            <label>Transaction Type:</label>
-            <select
-                onChange={(e) => setType(e.target.value)}
-                value={type}
-            >
-                <option value="expense">Expense</option>
-                <option value="income">Income</option>
-            </select>
-            <label>Category:</label>
-            <select onChange={(e) => setCategory(e.target.value)} value={category}>
+      setError(null);
+      setName("");
+      setType("expense");
+      setAmount("");
+      setCategory("Rent");
+      dispatch({ type: "CREATE_TRANSACTION", payload: json });
+    } catch (requestError) {
+      setError(requestError.message || "Failed to add transaction.");
+    }
+  };
 
-                <option value="Rent">Rent</option>
-                <option value="Taxes">Taxes</option>
-                <option value="Utilities">Utilities</option>
-                <option value="Mortgage">Mortgage</option>
-                <option value="Health">Health</option>
-                <option value="Savings">Savings</option>
-                <option value="Bills">Bills</option>
-                <option value="Travel">Travel</option>
-                <option value="Fees">Fees</option>
-                <option value="Food and Drink">Food and Drink</option>
-                <option value="Shopping">Shopping</option>
-                <option value="Entertainment">Entertainment</option>
-                <option value="Personal Care">Personal Care</option>
-                <option value="Transfer">Transfer</option>
-                <option value="Income">Income</option>
-                <option value="Uncategorized">Uncategorized</option>
+  return (
+    <form className="form-card" onSubmit={handleSubmit}>
+      <div className="form-card-header">
+        <p className="eyebrow">Manual Entry</p>
+        <h2>Add Transaction</h2>
+      </div>
 
-            </select>
-            
-            <label> Amount:</label>
-            <input
-                type="number"
-                onChange={(e) => setAmount(e.target.value)}
-                value={amount}
-            />
+      <div className="form-grid">
+        <label className="field">
+          <span>Transaction Name</span>
+          <input
+            type="text"
+            onChange={(event) => setName(event.target.value)}
+            value={name}
+            placeholder="e.g. Monthly Rent"
+            required
+          />
+        </label>
 
-            <button>Add Transaction</button>
-            {error && <p className="error" style={{color: "#cb0808", fontSize: "0.9em"}}>{error}</p>}
+        <label className="field">
+          <span>Type</span>
+          <select
+            onChange={(event) => setType(event.target.value)}
+            value={type}
+            required
+          >
+            <option value="expense">Expense</option>
+            <option value="income">Income</option>
+          </select>
+        </label>
 
-        </form>
-    )
+        <label className="field">
+          <span>Category</span>
+          <select
+            onChange={(event) => setCategory(event.target.value)}
+            value={category}
+            required
+          >
+            {categories.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+        </label>
 
-}
+        <label className="field">
+          <span>Amount (USD)</span>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            onChange={(event) => setAmount(event.target.value)}
+            value={amount}
+            placeholder="0.00"
+            required
+          />
+        </label>
+      </div>
 
-export default TransactionFrom
+      <button className="primary-button form-submit" type="submit">
+        Add Transaction
+      </button>
+
+      {error && <p className="status-message status-error">{error}</p>}
+    </form>
+  );
+};
+
+export default TransactionForm;

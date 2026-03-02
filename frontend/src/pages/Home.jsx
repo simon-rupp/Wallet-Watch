@@ -1,154 +1,203 @@
-import { useCallback, useEffect, useState } from "react"
-
-import TransactionDetails from "../components/TransactionDetails"
-import TransactionForm from "../components/TransactionForm"
-import CashFlow from "../components/cashFlow"
-import { useTransactionsContext } from "../hooks/useTransactionsContext"
-import { useAuthContext } from "../hooks/useAuthContext"
-import { apiFetch } from "../lib/api"
-
+import { useCallback, useEffect, useState } from "react";
+import TransactionDetails from "../components/TransactionDetails";
+import TransactionForm from "../components/TransactionForm";
+import CashFlow from "../components/cashFlow";
+import SpendingDisplay from "../components/SpendingDisplay";
+import IncomeDisplay from "../components/IncomeDisplay";
+import { useTransactionsContext } from "../hooks/useTransactionsContext";
+import { useAuthContext } from "../hooks/useAuthContext";
+import { apiFetch } from "../lib/api";
 
 const Home = () => {
-    
-    const { transactions, dispatch } = useTransactionsContext()
-    const { user } = useAuthContext()
-    const [filter, setFilter] = useState("newest")
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState(null)
-    const [syncLoading, setSyncLoading] = useState(false)
-    const [syncError, setSyncError] = useState(null)
-    
-    const transactionsPerPage = 20;
-    const [currentPage, setCurrentPage] = useState(1);
+  const { transactions, dispatch } = useTransactionsContext();
+  const { user } = useAuthContext();
 
-    const startIndex = (currentPage - 1) * transactionsPerPage;
-    const endIndex = startIndex + transactionsPerPage;
-    const totalTransactions = transactions?.length || 0;
-    
+  const [filter, setFilter] = useState("newest");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncError, setSyncError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
-    const handleNextPage = () => {
-        if (endIndex < totalTransactions) {
-          setCurrentPage(currentPage + 1);
+  const transactionsPerPage = 20;
+  const totalTransactions = transactions?.length || 0;
+  const startIndex = (currentPage - 1) * transactionsPerPage;
+  const endIndex = startIndex + transactionsPerPage;
+  const visibleTransactions = transactions?.slice(startIndex, endIndex) || [];
+
+  const fetchTransactions = useCallback(async () => {
+    if (!user) {
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await apiFetch(
+        `/api/transactions?sortBy=${encodeURIComponent(filter)}`,
+        {
+          headers: { Authorization: `Bearer ${user.token}` },
         }
-      };
-    
-      const handlePreviousPage = () => {
-        if (currentPage > 1) {
-          setCurrentPage(currentPage - 1);
-        }
-      };
+      );
+      const data = await response.json();
 
-    const fetchTransactions = useCallback(async () => {
-        if (!user) {
-            return;
-        }
+      if (!response.ok) {
+        setError(data.error || "Failed to load transactions.");
+        return;
+      }
 
-        setLoading(true);
-        setError(null);
+      dispatch({ type: "SET_TRANSACTIONS", payload: data });
+    } catch (requestError) {
+      setError(requestError.message || "Failed to load transactions.");
+    } finally {
+      setLoading(false);
+    }
+  }, [dispatch, filter, user]);
 
-        try {
-            const res = await apiFetch(`/api/transactions?sortBy=${encodeURIComponent(filter)}`, {
-                headers: {'Authorization': `Bearer ${user.token}`}
-            });
-            const data = await res.json();
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
 
-            if (!res.ok) {
-                setError(data.error || "Failed to load transactions");
-                return;
-            }
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter]);
 
-            dispatch({type: "SET_TRANSACTIONS", payload: data});
-        } catch (err) {
-            setError(err.message || "Failed to load transactions");
-        } finally {
-            setLoading(false);
-        }
-    }, [dispatch, filter, user]);
+  const handleSync = async (event) => {
+    event.preventDefault();
 
-    useEffect(() => {
-        fetchTransactions();
-    }, [fetchTransactions]);
+    if (!user) {
+      return;
+    }
 
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [filter]);
+    setSyncLoading(true);
+    setSyncError(null);
 
-    const onClick = async (event) => {
-        event.preventDefault();
+    try {
+      const response = await apiFetch("/api/plaid/transactions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${user.token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      const data = await response.json();
 
-        if (!user) {
-            return;
-        }
+      if (!response.ok) {
+        setSyncError(data.error || "Failed to sync transactions.");
+        return;
+      }
 
-        setSyncLoading(true);
-        setSyncError(null);
+      setCurrentPage(1);
+      await fetchTransactions();
+    } catch (requestError) {
+      setSyncError(requestError.message || "Failed to sync transactions.");
+    } finally {
+      setSyncLoading(false);
+    }
+  };
 
-        try {
-            const res = await apiFetch("/api/plaid/transactions", {
-                method: "POST",
-                headers: {
-                    'Authorization': `Bearer ${user.token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            const data = await res.json();
+  const handleNextPage = () => {
+    if (endIndex < totalTransactions) {
+      setCurrentPage((previousPage) => previousPage + 1);
+    }
+  };
 
-            if (!res.ok) {
-                setSyncError(data.error || "Failed to sync transactions");
-                return;
-            }
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage((previousPage) => previousPage - 1);
+    }
+  };
 
-            console.log("new transactions added", data);
-            setCurrentPage(1);
-            await fetchTransactions();
-        } catch (err) {
-            setSyncError(err.message || "Failed to sync transactions");
-        } finally {
-            setSyncLoading(false);
-        }
-    };
-
-    return (
-        <div className="home">
-            
-            <div className="transactions">
-            
-            <button className="syncButton" onClick={onClick} disabled={syncLoading || loading}>
-               {syncLoading ? "Syncing Transactions..." : "Sync Transactions From Connected Banks"}
-            </button>
-            {syncError && <p className="error" style={{color: "#cb0808", fontSize: "0.9em"}}>{syncError}</p>}
-            {error && <p className="error" style={{color: "#cb0808", fontSize: "0.9em"}}>{error}</p>}
-            {loading && <p style={{ color: "#414141", fontSize: "0.9em" }}>Loading transactions...</p>}
-            <div className="aboveTransactions">
-                <h2 className="allTransactionsText">All Transactions:</h2>
-                <div className="filter">
-                    <p className="filterText"> Filter:</p>
-                    <select className="sortButton" onChange={(e) => setFilter(e.target.value)}>
-                        <option value="newest">Newest</option>
-                        <option value="oldest">Oldest</option>
-                        <option value="income">Income</option>
-                        <option value="expense">Expense</option>
-                        <option value="highest">Highest</option>
-                        <option value="lowest">Lowest</option>
-                    </select>
-                </div>
-            </div>
-                {transactions && transactions.slice(startIndex, endIndex).map(transaction => (
-                    <TransactionDetails key={transaction._id} transaction={transaction} />
-                ))}
-                {!loading && transactions && transactions.length === 0 && (
-                    <p style={{ color: "#414141", fontSize: "0.9em" }}>No transactions found.</p>
-                )}
-                <button className="syncButton" onClick={handlePreviousPage} disabled={currentPage === 1}>Previous Page</button>
-                <button className="syncButton" onClick={handleNextPage} disabled={endIndex >= totalTransactions}>Next Page</button>
-                <p className="pageNumber">Page {currentPage}</p>
-            </div>
-            <div className="rightSide">
-                <TransactionForm />
-                <CashFlow transactions={transactions} />
-            </div>    
+  return (
+    <div className="dashboard-layout">
+      <section className="panel transactions-panel">
+        <div className="panel-header">
+          <div>
+            <p className="eyebrow">Overview</p>
+            <h2>Transactions</h2>
+            <p className="panel-subtitle">
+              Sync with linked banks or add manual entries to keep your ledger up
+              to date.
+            </p>
+          </div>
+          <button
+            className="primary-button sync-button"
+            onClick={handleSync}
+            disabled={syncLoading || loading}
+            type="button"
+          >
+            {syncLoading ? "Syncing..." : "Sync Connected Accounts"}
+          </button>
         </div>
-    )
-}
 
-export default Home
+        {syncError && <p className="status-message status-error">{syncError}</p>}
+        {error && <p className="status-message status-error">{error}</p>}
+        {loading && (
+          <p className="status-message status-neutral">Loading transactions...</p>
+        )}
+
+        <div className="toolbar">
+          <label className="field-inline">
+            <span>Sort by</span>
+            <select
+              className="sort-select"
+              onChange={(event) => setFilter(event.target.value)}
+              value={filter}
+            >
+              <option value="newest">Newest</option>
+              <option value="oldest">Oldest</option>
+              <option value="income">Income</option>
+              <option value="expense">Expense</option>
+              <option value="highest">Highest</option>
+              <option value="lowest">Lowest</option>
+            </select>
+          </label>
+        </div>
+
+        <div className="transaction-list">
+          {visibleTransactions.map((transaction) => (
+            <TransactionDetails key={transaction._id} transaction={transaction} />
+          ))}
+
+          {!loading && transactions && transactions.length === 0 && (
+            <p className="status-message status-neutral">
+              No transactions found yet.
+            </p>
+          )}
+        </div>
+
+        <div className="pagination-row">
+          <button
+            className="ghost-button"
+            onClick={handlePreviousPage}
+            disabled={currentPage === 1}
+            type="button"
+          >
+            Previous
+          </button>
+          <p className="pageNumber">Page {currentPage}</p>
+          <button
+            className="ghost-button"
+            onClick={handleNextPage}
+            disabled={endIndex >= totalTransactions}
+            type="button"
+          >
+            Next
+          </button>
+        </div>
+      </section>
+
+      <aside className="sidebar">
+        <div className="metric-grid">
+          <CashFlow />
+          <IncomeDisplay />
+          <SpendingDisplay />
+        </div>
+        <TransactionForm />
+      </aside>
+    </div>
+  );
+};
+
+export default Home;

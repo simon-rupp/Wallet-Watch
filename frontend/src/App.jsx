@@ -22,12 +22,12 @@ function App() {
         <div className="pages">
           <Routes>
             <Route 
-              exact path="/"
+              path="/"
               element={user ? <Home /> : <Navigate to="/login" />}
             />
             <Route
               path="/info"
-              element={user ? <Info /> : <Navigate to="/login" />}
+              element={<Info />}
             />
             <Route
               path="/linkaccount"

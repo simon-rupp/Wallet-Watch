@@ -71,10 +71,13 @@ Living handoff for this repo. Update this file as modernization work progresses.
 - Pages:
   - `Home`: transactions list + sort + pagination + sync button
   - `LinkAccounts`: Plaid Link flow
-  - `Login`, `Register`, `Info`, plus `Income`/`Spending` (currently not linked in navbar)
+  - `Login`, `Register`, `Info`, `Income`, `Spending` (all exposed in navigation)
 - API calls:
   - Centralized helper in `src/lib/api.js`
   - Uses `VITE_API_BASE_URL` for explicit backend origin
+- UI system:
+  - Global design tokens + responsive layout in `src/index.css`
+  - Shared finance helpers in `src/lib/finance.js`
 - Current hosting config:
   - `frontend/netlify.toml` builds Vite output (`dist`) + SPA redirect
 
@@ -95,7 +98,7 @@ Living handoff for this repo. Update this file as modernization work progresses.
 
 - Component-level tests are still sparse on key auth/transaction UI flows
 - `useLinkAccount.js` exists but is empty/unused
-- Formatting/validation patterns are inconsistent across components
+- There is still duplicated list-fetch logic across `Home`, `Income`, and `Spending`
 
 ### Deployment model drift
 
@@ -141,7 +144,15 @@ Reason: this minimizes rewrite risk while modernizing incrementally.
 - [x] Add loading/error states around Plaid sync and data fetches
 - [ ] Add component-level tests for auth and transaction list behaviors
 
-### Phase 3: Deployment refresh
+### Phase 3: UI modernization
+
+- [x] Introduce a cohesive design system (tokens, typography, spacing, card styles)
+- [x] Redesign navigation and page shells for dashboard/auth/content views
+- [x] Improve transaction list/form visual hierarchy and responsive behavior
+- [x] Add richer summary metrics presentation (cash flow/income/spending)
+- [ ] Capture visual regression snapshots for core pages
+
+### Phase 4: Deployment refresh
 
 - [ ] Deploy API service (Render free or similar)
 - [ ] Deploy frontend (Vercel Hobby)
@@ -149,7 +160,7 @@ Reason: this minimizes rewrite risk while modernizing incrementally.
 - [ ] Add health endpoint and post-deploy smoke checks
 - [ ] Document rollback and troubleshooting steps
 
-### Phase 4: Optional quality improvements
+### Phase 5: Optional quality improvements
 
 - [ ] Add TypeScript incrementally (backend first or shared DTO layer)
 - [ ] Add CI (lint + tests + build checks)
@@ -179,6 +190,7 @@ npm run dev
 
 - Prefer reading/editing only source paths, not `node_modules` or `build`
 - Keep this file current after each modernization phase
+- Playwright visual snapshots are currently blocked in this environment unless host browser deps are installed (`npx playwright install-deps`).
 - When changing deployment strategy, update:
   - `README.md`
   - frontend API base URL handling
