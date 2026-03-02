@@ -14,7 +14,7 @@ Living handoff for this repo. Update this file as modernization work progresses.
 ### Root
 
 - `README.md`: minimal project description + old Netlify URL
-- `.gitignore`: ignores root `/node_modules` and `.env`, but does **not** ignore `backend/node_modules`
+- `.gitignore`: now ignores dependency folders/env/build artifacts across root + backend + frontend
 - `.netlify/state.json`: Netlify site metadata
 - `backend/`: Express/Mongoose API
 - `frontend/`: CRA React app
@@ -88,12 +88,10 @@ Living handoff for this repo. Update this file as modernization work progresses.
 
 ### Backend correctness/security
 
-- Transaction ownership checks are missing for `getTransaction`, `deleteTransaction`, `updateTransaction` (uses raw `_id` without `userID` guard)
-- Plaid sync bug: `fetchNewSyncData` catch block references undefined `initialCursor`
 - Plaid multi-item model inconsistency:
   - `item_id` stored as array, but `access_token` stored as single value
   - `retrievePlaidTransactions` loops items but `syncTransactions` ignores `itemId` arg and reuses one access token
-- `date` field stored as `String` while code sometimes writes `new Date()`, creating inconsistent semantics
+- Per-item Plaid token/cursor redesign is still pending
 
 ### Frontend architecture/UX
 
@@ -131,12 +129,12 @@ Reason: this minimizes rewrite risk while modernizing incrementally.
 
 ### Phase 1: Backend hardening
 
-- [ ] Fix transaction ownership enforcement in all read/update/delete endpoints
-- [ ] Fix Plaid sync retry bug (`initialCursor` reference)
+- [x] Fix transaction ownership enforcement in all read/update/delete endpoints
+- [x] Fix Plaid sync retry bug (`initialCursor` reference)
 - [ ] Redesign Plaid token storage (per-item token model)
-- [ ] Normalize transaction date type (prefer `Date`)
-- [ ] Add request validation and centralized error handling
-- [ ] Add security middleware (`helmet`, tighter `cors`, basic rate limiting)
+- [x] Normalize transaction date type (prefer `Date`)
+- [x] Add request validation and centralized error handling
+- [x] Add security middleware (`helmet`, tighter `cors`, basic rate limiting)
 
 ### Phase 2: Frontend modernization
 

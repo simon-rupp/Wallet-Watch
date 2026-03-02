@@ -97,3 +97,101 @@ test('auth and transaction CRUD smoke flow', async () => {
   assert.equal(finalListRes.status, 200);
   assert.equal(finalListRes.body.length, 0);
 });
+
+test('user cannot access another user transaction', async () => {
+  const registerUserOne = await request(app)
+    .post('/api/user/register')
+    .send({ username: 'owner-user', password: 'password123' });
+  assert.equal(registerUserOne.status, 201);
+
+  const registerUserTwo = await request(app)
+    .post('/api/user/register')
+    .send({ username: 'other-user', password: 'password123' });
+  assert.equal(registerUserTwo.status, 201);
+
+  const ownerAuth = `Bearer ${registerUserOne.body.token}`;
+  const otherAuth = `Bearer ${registerUserTwo.body.token}`;
+
+  const createRes = await request(app)
+    .post('/api/transactions')
+    .set('Authorization', ownerAuth)
+    .send({
+      name: 'Owner Transaction',
+      type: 'expense',
+      amount: 45.5,
+      category: ['Food and Drink'],
+    });
+  assert.equal(createRes.status, 201);
+
+  const transactionId = createRes.body._id;
+
+  const otherGetRes = await request(app)
+    .get(`/api/transactions/${transactionId}`)
+    .set('Authorization', otherAuth);
+  assert.equal(otherGetRes.status, 404);
+
+  const otherUpdateRes = await request(app)
+    .patch(`/api/transactions/${transactionId}`)
+    .set('Authorization', otherAuth)
+    .send({ amount: 10 });
+  assert.equal(otherUpdateRes.status, 404);
+
+  const otherDeleteRes = await request(app)
+    .delete(`/api/transactions/${transactionId}`)
+    .set('Authorization', otherAuth);
+  assert.equal(otherDeleteRes.status, 404);
+
+  const ownerGetRes = await request(app)
+    .get(`/api/transactions/${transactionId}`)
+    .set('Authorization', ownerAuth);
+  assert.equal(ownerGetRes.status, 200);
+});
+
+test('transaction validation rejects bad payloads', async () => {
+  const registerRes = await request(app)
+    .post('/api/user/register')
+    .send({ username: 'validation-user', password: 'password123' });
+  assert.equal(registerRes.status, 201);
+
+  const authHeader = `Bearer ${registerRes.body.token}`;
+
+  const missingFieldsRes = await request(app)
+    .post('/api/transactions')
+    .set('Authorization', authHeader)
+    .send({});
+  assert.equal(missingFieldsRes.status, 400);
+  assert.deepEqual(
+    missingFieldsRes.body.invalidFields.sort(),
+    ['amount', 'name', 'type'].sort()
+  );
+
+  const invalidTypeRes = await request(app)
+    .post('/api/transactions')
+    .set('Authorization', authHeader)
+    .send({
+      name: 'Invalid Type',
+      type: 'other',
+      amount: 10,
+      category: ['Misc'],
+    });
+  assert.equal(invalidTypeRes.status, 400);
+  assert.ok(invalidTypeRes.body.invalidFields.includes('type'));
+
+  const createRes = await request(app)
+    .post('/api/transactions')
+    .set('Authorization', authHeader)
+    .send({
+      name: 'Valid Transaction',
+      type: 'income',
+      amount: 1500,
+      category: ['Income'],
+    });
+  assert.equal(createRes.status, 201);
+
+  const invalidUpdateRes = await request(app)
+    .patch(`/api/transactions/${createRes.body._id}`)
+    .set('Authorization', authHeader)
+    .send({ amount: -10 });
+  assert.equal(invalidUpdateRes.status, 400);
+  assert.ok(invalidUpdateRes.body.invalidFields.includes('amount'));
+});

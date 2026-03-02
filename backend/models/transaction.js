@@ -1,5 +1,4 @@
 const mongoose = require('mongoose')
-const User = require('./user')
 
 const Schema = mongoose.Schema
 
@@ -26,8 +25,8 @@ const transactionSchema = new Schema({
         required: false
     },
     date: {
-        type: String,
-        required: false
+        type: Date,
+        default: Date.now
     },
     category: {
         type: [String],

@@ -1,6 +1,5 @@
 const User = require('../models/user')
 const Transaction = require('../models/transaction')
-const mongoose = require('mongoose')
 require('dotenv').config()
 const { Configuration, PlaidApi, PlaidEnvironments } = require('plaid');
 
@@ -195,7 +194,7 @@ const fetchNewSyncData = async (accessToken, cursor, retriesLeft = 3) => {
     return allData;
   } catch (error) {
     console.log(`Oh no! Error! ${JSON.stringify(error)} Let's try again from the beginning!`);
-    return fetchNewSyncData(accessToken, initialCursor, retriesLeft - 1);
+    return fetchNewSyncData(accessToken, cursor, retriesLeft - 1);
   }
 }
 
