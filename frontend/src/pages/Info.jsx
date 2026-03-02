@@ -1,15 +1,36 @@
-
 const Info = () => {
-    return (
-        <div className="info">
-            <h1>About</h1>
-            <h2>Hello! Wallet Watch is a website designed so that users can keep track of all their transactions and the cash flow cash flow associated with them. <br></br><br></br>
-                Users can go to the "Connect Bank" page to connect their Wallet Watch account to their banks. All transactions made from those bank accounts will be displayed on the home page. Transactions
-                can also be manually added and deleted to keep the account as accurate as possible. <br></br><br></br>
-                Enjoy using Wallet Watch and thank you for visiting!
-            </h2>
-        </div>
-    )
-}
+  return (
+    <div className="content-shell">
+      <section className="content-card">
+        <p className="eyebrow">About Wallet Watch</p>
+        <h1>Personal finance visibility without spreadsheet overhead.</h1>
+        <p>
+          Wallet Watch helps you monitor cash movement across connected accounts
+          and manual entries so your transaction ledger stays accurate.
+        </p>
+      </section>
 
-export default Info
+      <section className="content-grid">
+        <article className="content-card">
+          <h2>What You Can Do</h2>
+          <ul>
+            <li>Sync transactions from connected banks through Plaid.</li>
+            <li>Manually add or remove transactions any time.</li>
+            <li>View total income, spending, and overall cash flow.</li>
+          </ul>
+        </article>
+
+        <article className="content-card">
+          <h2>Why It Works</h2>
+          <ul>
+            <li>Simple dashboard with transaction sorting and quick filtering.</li>
+            <li>Fast overview cards so trends are visible at a glance.</li>
+            <li>Single account login with route protection for private data.</li>
+          </ul>
+        </article>
+      </section>
+    </div>
+  );
+};
+
+export default Info;
