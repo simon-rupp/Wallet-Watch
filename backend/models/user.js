@@ -1,10 +1,26 @@
-const Transaction = require('./transaction') 
 const bcrypt = require('bcryptjs')
 
 
 const mongoose = require('mongoose')
 
 const Schema = mongoose.Schema
+const plaidItemSchema = new Schema(
+    {
+        itemId: {
+            type: String,
+            required: true,
+        },
+        accessToken: {
+            type: String,
+            required: true,
+        },
+        cursor: {
+            type: String,
+            default: null,
+        },
+    },
+    { _id: false }
+)
 
 const userSchema = new Schema({
     username: {
@@ -23,10 +39,15 @@ const userSchema = new Schema({
     item_id: {
         type: [String],
         required: false,
+        default: [],
     },
     plaidCursor: {
         type: String,
         required: false,
+    },
+    plaidItems: {
+        type: [plaidItemSchema],
+        default: [],
     },
 })
 
