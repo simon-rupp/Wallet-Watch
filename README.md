@@ -75,6 +75,34 @@ cd backend
 npm test
 ```
 
+## UI Screenshots
+
+The screenshots below were captured from the live deployment after seeding realistic sample data (multiple income entries and a larger set of expenses) via Playwright automation.
+
+### Dashboard Overview
+
+![Dashboard Overview](docs/screenshots/dashboard-overview.png)
+
+### Dashboard Full (Transaction Feed)
+
+![Dashboard Full](docs/screenshots/dashboard-full.png)
+
+### Spending Page
+
+![Spending Page](docs/screenshots/spending-page.png)
+
+### Income Page
+
+![Income Page](docs/screenshots/income-page.png)
+
+### Connect Bank Page
+
+![Connect Bank Page](docs/screenshots/link-bank-page.png)
+
+### Dashboard Mobile
+
+![Dashboard Mobile](docs/screenshots/dashboard-mobile.png)
+
 ## Deployment Direction
 
 Current modernization target is:
