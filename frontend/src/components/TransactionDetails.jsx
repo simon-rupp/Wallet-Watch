@@ -1,5 +1,6 @@
 import { useTransactionsContext } from "../hooks/useTransactionsContext"
 import { useAuthContext } from '../hooks/useAuthContext'
+import { apiFetch } from "../lib/api"
 
 const TransactionDetails = ({ transaction }) => {
     const formattedDate = new Date(transaction.date || transaction.createdAt).toLocaleDateString();
@@ -18,15 +19,19 @@ const TransactionDetails = ({ transaction }) => {
         if (!user){
             return
         }
-        const res = await fetch(`api/transactions/${transaction._id}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${user.token}`
+        try {
+            const res = await apiFetch(`/api/transactions/${transaction._id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${user.token}`
+                }
+            })
+            const data = await res.json()
+            if (res.ok) {
+                dispatch({type: "DELETE_TRANSACTION", payload: data})
             }
-        })
-        const data = await res.json()
-        if (res.ok) {
-            dispatch({type: "DELETE_TRANSACTION", payload: data})
+        } catch (err) {
+            console.error("Failed to delete transaction", err)
         }
         
     }  

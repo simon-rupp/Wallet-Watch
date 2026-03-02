@@ -5,7 +5,7 @@ Wallet Watch is a legacy MERN + Plaid app for tracking spending, income, and cas
 ## Repository Layout
 
 - `backend/`: Express + MongoDB API (auth, transactions, Plaid sync)
-- `frontend/`: React (Create React App) client
+- `frontend/`: React (Vite) client
 - `AGENTS.md`: modernization handoff and phased upgrade plan
 
 ## Prerequisites
@@ -33,7 +33,7 @@ Frontend:
 cp frontend/.env.example frontend/.env
 ```
 
-`REACT_APP_API_BASE_URL` is reserved for the frontend API-url migration step.
+Set `VITE_API_BASE_URL` to your backend origin (for local dev: `http://localhost:4000`).
 
 ### 2) Install dependencies
 
@@ -55,10 +55,10 @@ Frontend:
 
 ```bash
 cd frontend
-npm start
+npm run dev
 ```
 
-By default, the CRA dev server proxies API calls to `http://localhost:4000`.
+The Vite dev server runs on `http://localhost:5173` by default.
 
 ## Tests
 
