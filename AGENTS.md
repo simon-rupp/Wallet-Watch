@@ -4,16 +4,20 @@ Living handoff for this repo. Update this file as modernization work progresses.
 
 ## 1) Project Snapshot
 
-- App: `Wallet Watch` (legacy MERN + Plaid integration)
+- App: `Wallet Watch` (modernized MERN + Plaid integration)
 - Goal: modernize codebase and redeploy on a free/low-cost stack for limited users
 - Current shape: split frontend/backend with independent `package.json` files
 - Primary branch: `master`
+- Production deployment status (as of March 2, 2026):
+  - Frontend: `https://wallet-watch-seven.vercel.app`
+  - Backend: `https://wallet-watch-t5cu.onrender.com`
+  - Database: MongoDB Atlas `M0`
 
 ## 2) Repo Walkthrough
 
 ### Root
 
-- `README.md`: minimal project description + old Netlify URL
+- `README.md`: local setup + deployment/redeploy/rollback/troubleshooting docs
 - `.gitignore`: now ignores dependency folders/env/build artifacts across root + backend + frontend
 - `.netlify/state.json`: Netlify site metadata
 - `backend/`: Express/Mongoose API
@@ -53,6 +57,9 @@ Living handoff for this repo. Update this file as modernization work progresses.
   - `PORT`
   - `MONGO_URI`
   - `SECRET`
+  - `FRONTEND_ORIGIN`
+  - `RATE_LIMIT_WINDOW_MS`
+  - `RATE_LIMIT_MAX`
   - `PLAID_CLIENT_ID`
   - `PLAID_SECRET`
   - `PLAID_ENV`
@@ -79,15 +86,15 @@ Living handoff for this repo. Update this file as modernization work progresses.
   - Global design tokens + responsive layout in `src/index.css`
   - Shared finance helpers in `src/lib/finance.js`
 - Current hosting config:
-  - `frontend/netlify.toml` builds Vite output (`dist`) + SPA redirect
+  - Vercel is the active frontend host
+  - `frontend/netlify.toml` remains available for Netlify fallback deploys
 
 ## 3) Current Risks / Technical Debt (Observed)
 
 ### Repo hygiene and operability
 
-- `backend/node_modules` is tracked in git (very large repo bloat)
-- Historical/unused nested git dir exists at `backend/wallet-watch/.git`
-- `git status` is slow/hangs due repo size and file layout
+- Legacy history still contains large old commits (current tip is clean)
+- No nested git repo remains under `backend/wallet-watch/.git`
 
 ### Backend correctness/security
 
@@ -102,20 +109,21 @@ Living handoff for this repo. Update this file as modernization work progresses.
 
 ### Deployment model drift
 
-- Frontend no longer hardcodes Heroku rewrite rules, but production infra is not yet redeployed
-- Render/Vercel production environment variables and DNS/domain wiring are still pending
+- Vercel preview URLs can cause CORS failures unless explicitly added to `FRONTEND_ORIGIN`
+- Render free tier cold starts can make first API request slow
+- Operational runbook exists in `README.md`, but no automated uptime checks yet
 
-## 4) Suggested Target Architecture
+## 4) Current Deployment Architecture
 
-- Frontend: migrate to Vite React SPA and deploy on Vercel (Hobby) or Netlify free
-- Backend: deploy separately on Render free web service (or equivalent free Node host)
-- Database: MongoDB Atlas free tier (`M0`) for limited users
+- Frontend: Vite React SPA on Vercel (Hobby)
+- Backend: Express API on Render Web Service (free tier)
+- Database: MongoDB Atlas `M0`
 - Auth/API:
   - Keep JWT auth initially
   - Add strict CORS allowlist with frontend domain
   - Use explicit `VITE_API_BASE_URL` env variable in frontend (avoid host-coupled rewrites)
 
-Reason: this minimizes rewrite risk while modernizing incrementally.
+Reason: this keeps hosting costs low while maintaining an explicit frontend/backend boundary.
 
 ## 5) Modernization Plan (Phased)
 
@@ -150,15 +158,15 @@ Reason: this minimizes rewrite risk while modernizing incrementally.
 - [x] Redesign navigation and page shells for dashboard/auth/content views
 - [x] Improve transaction list/form visual hierarchy and responsive behavior
 - [x] Add richer summary metrics presentation (cash flow/income/spending)
-- [ ] Capture visual regression snapshots for core pages
+- [x] Capture visual snapshots for core pages (`docs/screenshots`)
 
 ### Phase 4: Deployment refresh
 
-- [ ] Deploy API service (Render free or similar)
-- [ ] Deploy frontend (Vercel Hobby)
-- [ ] Configure production env vars and CORS domains
-- [ ] Add health endpoint and post-deploy smoke checks
-- [ ] Document rollback and troubleshooting steps
+- [x] Deploy API service (Render free)
+- [x] Deploy frontend (Vercel Hobby)
+- [x] Configure production env vars and CORS domains
+- [x] Add health endpoint and post-deploy smoke checks
+- [x] Document rollback and troubleshooting steps
 
 ### Phase 5: Optional quality improvements
 
@@ -190,7 +198,7 @@ npm run dev
 
 - Prefer reading/editing only source paths, not `node_modules` or `build`
 - Keep this file current after each modernization phase
-- Playwright visual snapshots are currently blocked in this environment unless host browser deps are installed (`npx playwright install-deps`).
+- Playwright in this environment may need extra shared libs (`libnspr4`, `libnss3`, `libasound`) before Chromium automation works.
 - When changing deployment strategy, update:
   - `README.md`
   - frontend API base URL handling
